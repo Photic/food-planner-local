@@ -1,0 +1,35 @@
+[application]
+
+# Files placed in `public/` are copied verbatim to the web root, so `public/sw.js`
+# is served as `/sw.js`. The PWA manifest, service worker and icons live there
+# rather than in `assets/` because they must keep stable, predictable URLs — the
+# `asset!()` macro fingerprints filenames, and a service worker only controls the
+# scope it is served from.
+asset_dir = "public"
+
+[web.app]
+
+# HTML title tag content
+title = "Food Planner"
+
+# include `assets` in web platform
+[web.resource]
+
+# Additional CSS style files
+style = []
+
+# Additional JavaScript files
+script = []
+
+[web.resource.dev]
+
+# Javascript code file
+# serve: [dev-server] only
+script = []
+
+[web.watcher]
+
+# Regenerate index.html when a watched file changes
+reload_html = true
+
+watch_path = ["src", "assets", "public", "index.html"]

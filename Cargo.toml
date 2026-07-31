@@ -1,0 +1,29 @@
+[package]
+name = "food-planner"
+version = "0.1.0"
+authors = ["Steen Rene Hansen <steen_home@hotmail.com>"]
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+dioxus = { version = "0.7.1", features = ["router", "fullstack"] }
+serde = { version = "1.0", features = ["derive"] }
+chrono = { version = "0.4", default-features = false, features = ["serde", "clock", "wasmbind"] }
+
+# Server-only dependencies. The `server` feature gates them so the wasm client
+# build never tries to compile a database driver.
+sqlx = { version = "0.8", default-features = false, features = [
+    "runtime-tokio",
+    "sqlite",
+    "migrate",
+    "macros",
+], optional = true }
+tokio = { version = "1", features = ["sync"], optional = true }
+
+[features]
+default = ["web"]
+web = ["dioxus/web"]
+desktop = ["dioxus/desktop"]
+mobile = ["dioxus/mobile"]
+server = ["dioxus/server", "dep:sqlx", "dep:tokio"]

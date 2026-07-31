@@ -1,0 +1,233 @@
+/* App-wide styling. Sized for a phone held in the kitchen first, desktop second. */
+
+:root {
+    --accent: #2f6f4e;
+    --accent-text: #ffffff;
+    --bg: #f7f6f3;
+    --surface: #ffffff;
+    --text: #1c1f1d;
+    --muted: #6b716e;
+    --border: #dcdedb;
+    --danger: #a33a2f;
+    --radius: 10px;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg: #14171a;
+        --surface: #1d2124;
+        --text: #eceeed;
+        --muted: #9aa19d;
+        --border: #2f3538;
+        --danger: #d4675a;
+    }
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    background-color: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    line-height: 1.5;
+}
+
+#app-header {
+    background: var(--accent);
+    color: var(--accent-text);
+    /* env() keeps the title clear of the status bar when installed on iOS */
+    padding: calc(env(safe-area-inset-top) + 0.75rem) 1rem 0.75rem;
+}
+
+#app-header h1 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+#content {
+    max-width: 46rem;
+    margin: 0 auto;
+    /* Bottom padding clears the fixed navbar */
+    padding: 1rem 1rem calc(5rem + env(safe-area-inset-bottom));
+}
+
+h2 {
+    font-size: 1.1rem;
+    margin: 0 0 0.75rem;
+}
+
+h3 {
+    font-size: 1rem;
+    margin: 0;
+}
+
+.muted {
+    color: var(--muted);
+}
+
+.error {
+    color: var(--danger);
+}
+
+code {
+    background: var(--border);
+    padding: 0.1em 0.35em;
+    border-radius: 4px;
+    font-size: 0.9em;
+}
+
+/* Navigation ------------------------------------------------------------- */
+
+#navbar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    padding-bottom: env(safe-area-inset-bottom);
+}
+
+#navbar a {
+    flex: 1;
+    padding: 0.9rem 0.25rem;
+    text-align: center;
+    text-decoration: none;
+    color: var(--muted);
+    font-size: 0.85rem;
+}
+
+#navbar a.active {
+    color: var(--accent);
+    font-weight: 600;
+}
+
+/* Recipes ---------------------------------------------------------------- */
+
+.card,
+.recipe {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem;
+}
+
+.card {
+    margin-top: 1.5rem;
+}
+
+.recipe-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.recipe-head {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.recipe-head h3 {
+    flex: 1;
+}
+
+.ingredients {
+    margin: 0.6rem 0 0;
+    padding-left: 1.2rem;
+    color: var(--muted);
+    font-size: 0.92rem;
+}
+
+.instructions {
+    margin: 0.6rem 0 0;
+    white-space: pre-wrap;
+}
+
+/* Forms ------------------------------------------------------------------ */
+
+label {
+    display: block;
+    margin-bottom: 0.75rem;
+    font-size: 0.85rem;
+    color: var(--muted);
+}
+
+input,
+textarea {
+    display: block;
+    width: 100%;
+    margin-top: 0.25rem;
+    padding: 0.6rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg);
+    color: var(--text);
+    /* 16px stops iOS Safari zooming in when a field takes focus */
+    font-size: 16px;
+    font-family: inherit;
+}
+
+.ingredient-row {
+    display: flex;
+    gap: 0.4rem;
+    margin-bottom: 0.5rem;
+    align-items: center;
+}
+
+.ingredient-row input {
+    margin-top: 0;
+}
+
+.ingredient-row .qty {
+    flex: 0 0 4.5rem;
+}
+
+.ingredient-row .unit {
+    flex: 0 0 4.5rem;
+}
+
+.ingredient-row .ingredient-name {
+    flex: 1;
+}
+
+button {
+    padding: 0.6rem 0.9rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface);
+    color: var(--text);
+    font-size: 0.9rem;
+    font-family: inherit;
+    cursor: pointer;
+}
+
+button:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+button.primary {
+    background: var(--accent);
+    color: var(--accent-text);
+    border-color: var(--accent);
+    width: 100%;
+    padding: 0.8rem;
+    font-size: 1rem;
+    margin-top: 0.5rem;
+}
+
+button.danger {
+    color: var(--danger);
+    border-color: transparent;
+    background: transparent;
+    padding: 0.4rem 0.6rem;
+}
