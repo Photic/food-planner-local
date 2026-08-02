@@ -231,3 +231,24 @@ button.danger {
     background: transparent;
     padding: 0.4rem 0.6rem;
 }
+
+/* Photos are whatever shape the camera produced, so the width is constrained
+   and the height left to follow, rather than cropping someone's dinner. */
+.recipe-photo {
+    display: block;
+    width: 100%;
+    max-height: 20rem;
+    object-fit: cover;
+    border-radius: 8px;
+    margin: 0.6rem 0;
+    background: var(--surface);
+}
+
+.photo-preview img {
+    display: block;
+    width: 100%;
+    max-height: 14rem;
+    object-fit: cover;
+    border-radius: 8px;
+    margin-bottom: 0.4rem;
+}

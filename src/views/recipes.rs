@@ -1,6 +1,12 @@
-use crate::api::{create_recipe, delete_recipe, list_recipes};
+use crate::api::{create_recipe, delete_recipe, list_recipes, set_recipe_photo};
 use crate::models::{Ingredient, NewRecipe};
+use base64::{engine::general_purpose::STANDARD, Engine as _};
 use dioxus::prelude::*;
+
+/// Largest photo the form will accept, mirroring the server's own limit so the
+/// file is rejected before it is read and encoded rather than after a round
+/// trip. The server enforces the same ceiling regardless.
+const MAX_PHOTO_BYTES: u64 = 15 * 1024 * 1024;
 
 #[component]
 pub fn Recipes() -> Element {
@@ -32,6 +38,21 @@ pub fn Recipes() -> Element {
                                     }
                                 },
                                 "Delete"
+                            }
+                        }
+
+                        if let Some(version) = recipe.photo_version {
+                            // Served as bytes by the `/photo/{id}` route rather
+                            // than fetched as JSON, so the browser caches it and
+                            // holds off until it scrolls into view. The version
+                            // makes the URL change when the photo does, which is
+                            // what lets that cache entry live for a year.
+                            img {
+                                class: "recipe-photo",
+                                src: "/photo/{recipe.id}?v={version}",
+                                loading: "lazy",
+                                decoding: "async",
+                                alt: "Photo of {recipe.name}",
                             }
                         }
 
@@ -89,6 +110,37 @@ fn RecipeForm(on_saved: EventHandler<()>) -> Element {
     let mut ingredients = use_signal(|| vec![Ingredient::default()]);
     let mut error = use_signal(|| Option::<String>::None);
     let mut saving = use_signal(|| false);
+    // Held as (MIME type, base64) so it can be previewed and posted without
+    // reading the file a second time.
+    let mut photo = use_signal(|| Option::<(String, String)>::None);
+
+    let choose_photo = move |event: Event<FormData>| async move {
+        let Some(file) = event.files().into_iter().next() else {
+            return;
+        };
+
+        if file.size() > MAX_PHOTO_BYTES {
+            // One decimal place: whole megabytes round a 1.2 MB photo down to
+            // the same "1 MB" as the limit it just exceeded.
+            error.set(Some(format!(
+                "That photo is {:.1} MB; the limit is {:.1} MB",
+                file.size() as f64 / 1_048_576.0,
+                MAX_PHOTO_BYTES as f64 / 1_048_576.0
+            )));
+            return;
+        }
+
+        match file.read_bytes().await {
+            Ok(bytes) => {
+                let mime = file
+                    .content_type()
+                    .unwrap_or_else(|| "image/jpeg".to_string());
+                photo.set(Some((mime, STANDARD.encode(&bytes))));
+                error.set(None);
+            }
+            Err(err) => error.set(Some(format!("Could not read that photo: {err}"))),
+        }
+    };
 
     let submit = move |_| async move {
         saving.set(true);
@@ -102,11 +154,21 @@ fn RecipeForm(on_saved: EventHandler<()>) -> Element {
         };
 
         match create_recipe(recipe).await {
-            Ok(_) => {
+            Ok(id) => {
+                // The recipe is already saved at this point. A photo that fails
+                // to upload is reported but does not discard the typed-in text,
+                // which would be a poor trade for an optional picture.
+                if let Some((mime, data)) = photo() {
+                    if let Err(err) = set_recipe_photo(id, mime, data).await {
+                        error.set(Some(format!("Recipe saved, but the photo failed: {err}")));
+                    }
+                }
+
                 name.set(String::new());
                 instructions.set(String::new());
                 servings.set(2);
                 ingredients.set(vec![Ingredient::default()]);
+                photo.set(None);
                 on_saved.call(());
             }
             Err(err) => error.set(Some(err.to_string())),
@@ -187,6 +249,30 @@ fn RecipeForm(on_saved: EventHandler<()>) -> Element {
                     placeholder: "Boil the pasta…",
                     value: "{instructions}",
                     oninput: move |event| instructions.set(event.value()),
+                }
+            }
+
+            label { "Photo"
+                input {
+                    r#type: "file",
+                    // Narrows the picker to images, and on a phone offers the
+                    // camera alongside the library. `capture` asks for the rear
+                    // lens, which is the one pointed at the food; browsers that
+                    // do not understand it fall back to the ordinary picker.
+                    accept: "image/*",
+                    capture: "environment",
+                    onchange: choose_photo,
+                }
+            }
+
+            if let Some((mime, data)) = photo() {
+                div { class: "photo-preview",
+                    img { src: "data:{mime};base64,{data}", alt: "Photo to be saved with this recipe" }
+                    button {
+                        class: "danger",
+                        onclick: move |_| photo.set(None),
+                        "Remove photo"
+                    }
                 }
             }
 

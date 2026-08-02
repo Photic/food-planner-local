@@ -12,6 +12,12 @@ pub struct Recipe {
     pub instructions: String,
     pub servings: i64,
     pub ingredients: Vec<Ingredient>,
+    /// Identifies the current photo, and is `None` when there is none. Not the
+    /// photo itself: the listing returns every recipe at once, so carrying
+    /// image bytes here would put the whole album in one response. The bytes
+    /// come from `/photo/{id}`, and this goes in its query string so that
+    /// replacing a photo produces a URL the browser has not cached.
+    pub photo_version: Option<i64>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
