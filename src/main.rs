@@ -1,6 +1,7 @@
 use dioxus::prelude::*;
 
 mod api;
+mod camera;
 mod models;
 mod views;
 

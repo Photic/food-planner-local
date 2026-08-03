@@ -1,5 +1,6 @@
 mod navbar;
 mod pantry;
+mod photo;
 mod planner;
 mod recipes;
 mod shopping;

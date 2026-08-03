@@ -252,3 +252,85 @@ button.danger {
     border-radius: 8px;
     margin-bottom: 0.4rem;
 }
+
+/* Stands in for a `label` where the control below is a component rather than a
+   single input, so there is no one field for a label to be attached to. */
+.field-label {
+    margin: 0 0 0.5rem;
+    font-size: 0.85rem;
+    color: var(--muted);
+}
+
+/* The camera button and the file input are stacked rather than sat side by
+   side: the file input renders at whatever width its browser decides, and a row
+   containing one is never the same shape twice. */
+.photo-picker {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.photo-picker input {
+    margin-top: 0;
+}
+
+/* Photo controls on an existing recipe, folded away behind a summary. */
+.photo-editor {
+    margin-top: 0.6rem;
+    font-size: 0.9rem;
+}
+
+.photo-editor summary {
+    color: var(--muted);
+    cursor: pointer;
+}
+
+.photo-editor .photo-picker {
+    margin-top: 0.6rem;
+}
+
+/* Camera ----------------------------------------------------------------- */
+
+/* Covers the screen. Framing a plate of food inside a thumbnail is not worth
+   doing, and a full-bleed preview is what a camera looks like everywhere else
+   on the device. */
+.viewfinder {
+    position: fixed;
+    inset: 0;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    background: #000;
+}
+
+.viewfinder-preview {
+    flex: 1;
+    width: 100%;
+    /* `contain` rather than `cover`, so what is on screen is what gets saved.
+       Cropping the preview would promise a framing the photo does not keep. */
+    object-fit: contain;
+    /* Lets the video shrink inside the flex column instead of forcing the
+       controls off the bottom of the screen. */
+    min-height: 0;
+}
+
+.viewfinder-controls {
+    display: flex;
+    gap: 0.75rem;
+    padding: 1rem;
+    /* Clears the home indicator when running full-screen on iOS */
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+    background: var(--surface);
+}
+
+.viewfinder-controls button {
+    flex: 1;
+}
+
+/* The shared `.primary` rule is written for a button standing alone at the foot
+   of a form; in this row the width and the gap above it both come from flex. */
+.viewfinder-controls button.primary {
+    width: auto;
+    margin-top: 0;
+}

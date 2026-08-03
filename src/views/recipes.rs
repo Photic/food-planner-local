@@ -1,12 +1,7 @@
-use crate::api::{create_recipe, delete_recipe, list_recipes, set_recipe_photo};
+use crate::api::{clear_recipe_photo, create_recipe, delete_recipe, list_recipes, set_recipe_photo};
 use crate::models::{Ingredient, NewRecipe};
-use base64::{engine::general_purpose::STANDARD, Engine as _};
+use crate::views::photo::PhotoPicker;
 use dioxus::prelude::*;
-
-/// Largest photo the form will accept, mirroring the server's own limit so the
-/// file is rejected before it is read and encoded rather than after a round
-/// trip. The server enforces the same ceiling regardless.
-const MAX_PHOTO_BYTES: u64 = 15 * 1024 * 1024;
 
 #[component]
 pub fn Recipes() -> Element {
@@ -67,6 +62,20 @@ pub fn Recipes() -> Element {
                         if !recipe.instructions.is_empty() {
                             p { class: "instructions", "{recipe.instructions}" }
                         }
+
+                        // Folded away by default. A picker under every recipe
+                        // would crowd out the list, which is what the page is
+                        // actually for.
+                        details { class: "photo-editor",
+                            summary {
+                                if recipe.photo_version.is_some() { "Change photo" } else { "Add photo" }
+                            }
+                            RecipePhotoEditor {
+                                id: recipe.id,
+                                has_photo: recipe.photo_version.is_some(),
+                                on_changed: move |_| recipes.restart(),
+                            }
+                        }
                     }
                 }
             }
@@ -102,6 +111,65 @@ fn format_amount(ingredient: &Ingredient) -> String {
     }
 }
 
+/// Photo management for a recipe that already exists.
+///
+/// The upload happens as soon as a photo is chosen, with no separate save step
+/// — unlike the form, where the photo has to wait for the recipe to be given an
+/// id before it has anything to attach to.
+#[component]
+fn RecipePhotoEditor(id: i64, has_photo: bool, on_changed: EventHandler<()>) -> Element {
+    let mut error = use_signal(|| Option::<String>::None);
+    let mut saving = use_signal(|| false);
+
+    let upload = move |(mime, data): (String, String)| async move {
+        saving.set(true);
+        error.set(None);
+
+        match set_recipe_photo(id, mime, data).await {
+            Ok(()) => on_changed.call(()),
+            Err(err) => error.set(Some(err.to_string())),
+        }
+
+        saving.set(false);
+    };
+
+    let remove = move |_| async move {
+        saving.set(true);
+        error.set(None);
+
+        match clear_recipe_photo(id).await {
+            Ok(()) => on_changed.call(()),
+            Err(err) => error.set(Some(err.to_string())),
+        }
+
+        saving.set(false);
+    };
+
+    rsx! {
+        PhotoPicker {
+            on_photo: upload,
+            on_error: move |message| error.set(Some(message)),
+        }
+
+        if has_photo {
+            button {
+                class: "danger",
+                disabled: saving(),
+                onclick: remove,
+                "Remove photo"
+            }
+        }
+
+        if saving() {
+            p { class: "muted", "Saving photo…" }
+        }
+
+        if let Some(message) = error() {
+            p { class: "error", "{message}" }
+        }
+    }
+}
+
 #[component]
 fn RecipeForm(on_saved: EventHandler<()>) -> Element {
     let mut name = use_signal(String::new);
@@ -113,34 +181,6 @@ fn RecipeForm(on_saved: EventHandler<()>) -> Element {
     // Held as (MIME type, base64) so it can be previewed and posted without
     // reading the file a second time.
     let mut photo = use_signal(|| Option::<(String, String)>::None);
-
-    let choose_photo = move |event: Event<FormData>| async move {
-        let Some(file) = event.files().into_iter().next() else {
-            return;
-        };
-
-        if file.size() > MAX_PHOTO_BYTES {
-            // One decimal place: whole megabytes round a 1.2 MB photo down to
-            // the same "1 MB" as the limit it just exceeded.
-            error.set(Some(format!(
-                "That photo is {:.1} MB; the limit is {:.1} MB",
-                file.size() as f64 / 1_048_576.0,
-                MAX_PHOTO_BYTES as f64 / 1_048_576.0
-            )));
-            return;
-        }
-
-        match file.read_bytes().await {
-            Ok(bytes) => {
-                let mime = file
-                    .content_type()
-                    .unwrap_or_else(|| "image/jpeg".to_string());
-                photo.set(Some((mime, STANDARD.encode(&bytes))));
-                error.set(None);
-            }
-            Err(err) => error.set(Some(format!("Could not read that photo: {err}"))),
-        }
-    };
 
     let submit = move |_| async move {
         saving.set(true);
@@ -252,17 +292,13 @@ fn RecipeForm(on_saved: EventHandler<()>) -> Element {
                 }
             }
 
-            label { "Photo"
-                input {
-                    r#type: "file",
-                    // Narrows the picker to images, and on a phone offers the
-                    // camera alongside the library. `capture` asks for the rear
-                    // lens, which is the one pointed at the food; browsers that
-                    // do not understand it fall back to the ordinary picker.
-                    accept: "image/*",
-                    capture: "environment",
-                    onchange: choose_photo,
-                }
+            p { class: "field-label", "Photo" }
+            PhotoPicker {
+                on_photo: move |chosen| {
+                    photo.set(Some(chosen));
+                    error.set(None);
+                },
+                on_error: move |message| error.set(Some(message)),
             }
 
             if let Some((mime, data)) = photo() {
